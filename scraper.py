@@ -4,6 +4,7 @@ import time
 import csv
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
+from places_api_test import make_request
 
 # base_url = "https://www.parkwayparade.com.sg/opening-hours/"
 
@@ -69,7 +70,11 @@ class StoreInfo:
             writer.writerow(data)
 
     def visit_stores(self, store_links: list[str], heading_class: str = "page-title"):
-        # store_links = store_links[201:-1]
+        # Perform some filtering to ensure we don't include bare domains
+        store_links = [
+            url for url in store_links if url.lstrip("/") != self.store_page_url
+        ]
+        # store_links = store_links[223:]
         self.store_page_title = ""
         print("\n".join(store_links))
         print(f"Total stores: {len(store_links)}")
@@ -92,35 +97,79 @@ class StoreInfo:
                 print("Unable to visit" + store)
                 continue
 
-            hours_string = self.grab_opening_hours()
+            # Make the request to the places API
+            google_poi_info = self.make_places_api_request()
+
+            # Check that the info is for the correct place
+            API_location_response = f'{google_poi_info["displayName"]["text"]} - {google_poi_info["formattedAddress"]}'
+
+            hours_string = self.grab_opening_hours(places_poi_info=google_poi_info)
             description = self.grab_description()
-            telephone = self.grab_telephone()
+            telephone = self.grab_telephone(places_poi_info=google_poi_info)
+            website = self.grab_website(places_poi_info=google_poi_info)
             if self.will_grab_store_images:
                 self.grab_store_images()
             self.save_scraped_data(
                 Store=self.store_page_title,
                 Description=description,
+                Website=website,
                 Telephone=telephone,
                 Hours=hours_string,
+                APIResponse=API_location_response,
             )
 
-    def grab_store_links(self):
+    def grab_store_links(self, *args, **kwargs):
         pass
 
-    def grab_opening_hours(self):
-        pass
+    def grab_opening_hours(self, *args, **kwargs):
+        if "places_poi_info" in kwargs.keys():
+            try:
+                return "\n".join(
+                    kwargs["places_poi_info"]["regularOpeningHours"][
+                        "weekdayDescriptions"
+                    ]
+                )
+            except KeyError:
+                print("Unable to retrieve value for", self.store_page_title)
+
+        return "NIL"
 
     def grab_description(self):
         pass
 
-    def grab_telephone(self):
-        pass
+    def grab_telephone(self, *args, **kwargs):
+        telephone_nos = []
+        # From website
+        tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
+        if tel_link:
+            dir_telephone_info = tel_link.get_text()
+            telephone_nos.append(f"{dir_telephone_info} (Directory)")
 
-    def grab_website(self):
-        pass
+        # From API
+        if "places_poi_info" in kwargs.keys():
+            google_telephone_info = kwargs["places_poi_info"].get(
+                "nationalPhoneNumber", "NIL"
+            )
+            if google_telephone_info != "NIL":
+                telephone_nos.append(f"{google_telephone_info} (Google)")
+
+        if telephone_nos:
+            return "/".join(telephone_nos)
+        return "NIL"
+
+    def grab_website(self, *args, **kwargs):
+        if "places_poi_info" in kwargs.keys():
+            return kwargs["places_poi_info"].get("websiteUri", "NIL")
+
+        return "NIL"
 
     def grab_store_images(self):
         pass
+
+    def make_places_api_request(self):
+        resp = make_request(self.name, self.store_page_title)
+
+        return resp
 
 
 def main(mode=0):
