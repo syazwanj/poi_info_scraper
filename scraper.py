@@ -29,6 +29,8 @@ class StoreInfo:
 
         # Storing results
         self.mall_folder = f"./output/{self.name}"
+
+    def run_init_checks(self):
         self.check_mall_folder_exists()
         self.check_directory_page_exists()
 
@@ -145,10 +147,10 @@ class StoreInfo:
     def grab_telephone(self, *args, **kwargs):
         telephone_nos = []
         # From website
-        # tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
-        # if tel_link:
-        #     dir_telephone_info = tel_link.get_text()
-        #     telephone_nos.append(f"{dir_telephone_info} (Directory)")
+        tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
+        if tel_link:
+            dir_telephone_info = tel_link.get_text()
+            telephone_nos.append(f"{dir_telephone_info} (Directory)")
 
         # From API
         if "places_poi_info" in kwargs.keys():

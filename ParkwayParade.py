@@ -42,7 +42,8 @@ class ParkwayParade(StoreInfo):
         parent_div = self.store_soup.find("div", class_="rich-text")
 
         # Extracting all text from the parent div
-        all_text = parent_div.get_text(separator="\n\n", strip=True).replace("â€™", "'")
+        all_text = parent_div.get_text(
+            separator="\n\n", strip=True).replace("â€™", "'")
         description = all_text
 
         return description
@@ -62,7 +63,8 @@ class ParkwayParade(StoreInfo):
         )
 
         # Step 2: Inside the parent, find the specific img tag
-        img_tag = parent_div.find("img")  # Locate the img tag inside the parent div
+        # Locate the img tag inside the parent div
+        img_tag = parent_div.find("img")
 
         # Step 3: Extract the image URL
         img_url = img_tag["src"]
@@ -83,12 +85,15 @@ class ParkwayParade(StoreInfo):
         if response.status_code == 200:
             with open(f"{image_save_folder}/{self.store_page_title}.png", "wb") as file:
                 file.write(response.content)
-            print(f"Image saved successfully as '{self.store_page_title}.png'.")
+            print(
+                f"Image saved successfully as '{self.store_page_title}.png'.")
         else:
-            print(f"Failed to download image. Status code: {response.status_code}")
+            print(
+                f"Failed to download image. Status code: {response.status_code}")
 
 
 if __name__ == "__main__":
     parkway_parade = ParkwayParade()
+    parkway_parade.run_init_checks()
     store_links = parkway_parade.grab_store_links()
     parkway_parade.visit_stores(store_links)
