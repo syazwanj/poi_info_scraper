@@ -5,6 +5,7 @@ import csv
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
 from places_api_test import make_request
+from utils import group_opening_hours, parse_opening_hours
 
 # base_url = "https://www.parkwayparade.com.sg/opening-hours/"
 
@@ -124,11 +125,15 @@ class StoreInfo:
     def grab_opening_hours(self, *args, **kwargs):
         if "places_poi_info" in kwargs.keys():
             try:
-                return "\n".join(
+                opening_hours_str = ",".join(
                     kwargs["places_poi_info"]["regularOpeningHours"][
                         "weekdayDescriptions"
                     ]
                 )
+                opening_hours_dict = parse_opening_hours(opening_hours_str)
+                opening_hours_grouped = group_opening_hours(opening_hours_dict)
+
+                return opening_hours_grouped
             except KeyError:
                 print("Unable to retrieve value for", self.store_page_title)
 
@@ -140,22 +145,23 @@ class StoreInfo:
     def grab_telephone(self, *args, **kwargs):
         telephone_nos = []
         # From website
-        tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
-        if tel_link:
-            dir_telephone_info = tel_link.get_text()
-            telephone_nos.append(f"{dir_telephone_info} (Directory)")
+        # tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
+        # if tel_link:
+        #     dir_telephone_info = tel_link.get_text()
+        #     telephone_nos.append(f"{dir_telephone_info} (Directory)")
 
         # From API
         if "places_poi_info" in kwargs.keys():
-            google_telephone_info = kwargs["places_poi_info"].get(
+            google_telephone_info = "+65 " + kwargs["places_poi_info"].get(
                 "nationalPhoneNumber", "NIL"
             )
-            if google_telephone_info != "NIL":
-                telephone_nos.append(f"{google_telephone_info} (Google)")
+            if "NIL" not in google_telephone_info:
+                telephone_nos.append(google_telephone_info)
 
         if telephone_nos:
             return "/".join(telephone_nos)
-        return "NIL"
+
+        return ""
 
     def grab_website(self, *args, **kwargs):
         if "places_poi_info" in kwargs.keys():
