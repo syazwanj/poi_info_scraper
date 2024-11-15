@@ -10,7 +10,7 @@ dotenv.load_dotenv(".env")
 headers = {
     "Content-Type": "application/json",
     "X-Goog-Api-Key": f"{os.environ.get('GOOGLE_MAPS_API_KEY')}",
-    "X-Goog-FieldMask": "places.formattedAddress,places.displayName.text,places.nationalPhoneNumber,places.regularOpeningHours.weekdayDescriptions,places.websiteUri",
+    "X-Goog-FieldMask": "places.formattedAddress,places.displayName.text,places.nationalPhoneNumber,places.regularOpeningHours.periods,places.websiteUri",
 }
 request_url = "https://places.googleapis.com/v1/places:searchText"
 
@@ -19,7 +19,7 @@ def make_request(mall: str, poi: str) -> dict:
     """
     Only returns the first result that is obtained.
 
-    By default, fields are: formattedAddress, displayName, nationalPhoneNumber, regularOpeningHours.weekdayDescriptions, websiteUrl
+    By default, fields are: formattedAddress, displayName, nationalPhoneNumber, regularOpeningHours.periods, websiteUrl
     """
     timeout = 0.5  # in seconds
     query = f"Singapore {mall} {poi}"
@@ -27,7 +27,8 @@ def make_request(mall: str, poi: str) -> dict:
 
     # Make the request
     print(f"Query: {query}. Making request to Google's Places API...")
-    resp = requests.post(request_url, json=data, headers=headers, timeout=timeout)
+    resp = requests.post(request_url, json=data,
+                         headers=headers, timeout=timeout)
     resp.encoding = "utf-8"
 
     return resp.json()["places"][0]
@@ -43,7 +44,8 @@ params = {
 
 def main():
     print(f'API key: {headers["X-Goog-Api-Key"]}')
-    resp = requests.post(request_url, json=params, headers=headers, timeout=0.5)
+    resp = requests.post(request_url, json=params,
+                         headers=headers, timeout=1.0)
     resp.encoding = "utf-8"
     ans: dict = resp.json()
     for k, v in ans["places"][0].items():

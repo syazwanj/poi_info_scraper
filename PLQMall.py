@@ -80,7 +80,8 @@ class PLQMall(StoreInfo):
         )
 
         # Step 2: Inside the parent, find the specific img tag
-        img_tag = parent_div.find("img")  # Locate the img tag inside the parent div
+        # Locate the img tag inside the parent div
+        img_tag = parent_div.find("img")
 
         # Step 3: Extract the image URL
         img_url = img_tag["src"]
@@ -101,12 +102,15 @@ class PLQMall(StoreInfo):
         if response.status_code == 200:
             with open(f"{image_save_folder}/{self.store_page_title}.png", "wb") as file:
                 file.write(response.content)
-            print(f"Image saved successfully as '{self.store_page_title}.png'.")
+            print(
+                f"Image saved successfully as '{self.store_page_title}.png'.")
         else:
-            print(f"Failed to download image. Status code: {response.status_code}")
+            print(
+                f"Failed to download image. Status code: {response.status_code}")
 
 
 if __name__ == "__main__":
     plq = PLQMall()
+    plq.run_init_checks()
     store_links = plq.grab_store_links()
     plq.visit_stores(store_links, heading_class="text-brand-heading")

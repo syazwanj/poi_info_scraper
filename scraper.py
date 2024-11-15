@@ -5,7 +5,7 @@ import csv
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
 from places_api_test import make_request
-from utils import group_opening_hours, parse_opening_hours
+from utils import format_grouped_opening_hours, parse_opening_hours
 
 # base_url = "https://www.parkwayparade.com.sg/opening-hours/"
 
@@ -77,7 +77,7 @@ class StoreInfo:
         store_links = [
             url for url in store_links if url.lstrip("/") != self.store_page_url
         ]
-        # store_links = store_links[223:]
+        # store_links = store_links[54:]
         self.store_page_title = ""
         print("\n".join(store_links))
         print(f"Total stores: {len(store_links)}")
@@ -89,7 +89,8 @@ class StoreInfo:
             try:
                 store_page = requests.get(f"{self.base_url}{store}")
                 store_page.encoding = "utf-8"
-                self.store_soup = BeautifulSoup(store_page.content, "html.parser")
+                self.store_soup = BeautifulSoup(
+                    store_page.content, "html.parser")
                 self.store_page_title = (
                     self.store_soup.find(class_=heading_class)
                     .get_text()
@@ -106,7 +107,8 @@ class StoreInfo:
             # Check that the info is for the correct place
             API_location_response = f'{google_poi_info["displayName"]["text"]} - {google_poi_info["formattedAddress"]}'
 
-            hours_string = self.grab_opening_hours(places_poi_info=google_poi_info)
+            hours_string = self.grab_opening_hours(
+                places_poi_info=google_poi_info)
             description = self.grab_description()
             telephone = self.grab_telephone(places_poi_info=google_poi_info)
             website = self.grab_website(places_poi_info=google_poi_info)
@@ -127,13 +129,10 @@ class StoreInfo:
     def grab_opening_hours(self, *args, **kwargs):
         if "places_poi_info" in kwargs.keys():
             try:
-                opening_hours_str = ",".join(
-                    kwargs["places_poi_info"]["regularOpeningHours"][
-                        "weekdayDescriptions"
-                    ]
-                )
-                opening_hours_dict = parse_opening_hours(opening_hours_str)
-                opening_hours_grouped = group_opening_hours(opening_hours_dict)
+                opening_hours_json = kwargs["places_poi_info"]["regularOpeningHours"]
+                opening_hours_dict = parse_opening_hours(opening_hours_json)
+                opening_hours_grouped = format_grouped_opening_hours(
+                    opening_hours_dict)
 
                 return opening_hours_grouped
             except KeyError:
@@ -146,11 +145,11 @@ class StoreInfo:
 
     def grab_telephone(self, *args, **kwargs):
         telephone_nos = []
-        # From website
-        tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
-        if tel_link:
-            dir_telephone_info = tel_link.get_text()
-            telephone_nos.append(f"{dir_telephone_info} (Directory)")
+        # # From website
+        # tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
+        # if tel_link:
+        #     dir_telephone_info = tel_link.get_text()
+        #     telephone_nos.append(f"{dir_telephone_info} (Directory)")
 
         # From API
         if "places_poi_info" in kwargs.keys():
