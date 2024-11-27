@@ -8,35 +8,43 @@ day_order = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 
 
 # Convert time to 24-hour format
-def convert_to_24h(time_str: str):
-    # If time starts with 12 or 00, the AM/PM is dropped for some reason
-    if time_str.startswith("00"):
-        time_str = time_str + " AM"
-    elif time_str.startswith("12"):
-        time_str = time_str + " PM"
+def convert_to_24h(index: int, time_str: str):
+    # If open and end time are both within AM or within PM, the first AM/PM is dropped.
+    if time_str.startswith("12") and ("AM" not in time_str or "PM" not in time_str):
+        if index == 0:  # Open time
+            time_str += " PM"
+        elif index == 1:  # Close time
+            time_str += " AM"
 
     return datetime.strptime(time_str.strip(), "%I:%M %p").strftime("%H:%M")
 
 
 # Function to parse the string into a dictionary
-def parse_opening_hours(opening_hours_str):
+def parse_opening_hours(opening_hours_list: list[str]):
     day_abbreviations = {
-        "Monday": "Mo",
-        "Tuesday": "Tu",
-        "Wednesday": "We",
-        "Thursday": "Th",
-        "Friday": "Fr",
-        "Saturday": "Sa",
-        "Sunday": "Su",
+        0: "Mo",
+        1: "Tu",
+        2: "We",
+        3: "Th",
+        4: "Fr",
+        5: "Sa",
+        6: "Su",
     }
     opening_hours = {}
-    entries = opening_hours_str.split(",")
-    for entry in entries:
-        day, hours = re.match(r"(\w+):\s?(.*)", entry).groups()
-        # Split and convert each time range to 24-hour format
-        time_ranges = hours.split("–")
-        converted_times = [convert_to_24h(t) for t in time_ranges]
-        opening_hours[day_abbreviations[day]] = ["-".join(converted_times)]
+    for day_index, day in enumerate(opening_hours_list):
+        day = day.encode("ascii", "ignore").decode("ascii")
+        print(day)
+        entries = re.match(r"(\d+:\d+\w+-\d+:\d+\w+)", day)
+        print(entries)
+        entries = entries.groups()
+        print(entries)
+        for entry in entries:
+            # Split and convert each time range to 24-hour format
+            hours = entry.split("–")
+            converted_times = [
+                convert_to_24h(index, t) for index, t in enumerate(hours)
+            ]
+            opening_hours[day_abbreviations[day_index]] = ["-".join(converted_times)]
     return opening_hours
 
 

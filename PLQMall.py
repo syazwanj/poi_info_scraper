@@ -108,5 +108,6 @@ class PLQMall(StoreInfo):
 
 if __name__ == "__main__":
     plq = PLQMall()
+    plq.run_init_checks()
     store_links = plq.grab_store_links()
     plq.visit_stores(store_links, heading_class="text-brand-heading")

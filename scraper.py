@@ -127,18 +127,18 @@ class StoreInfo:
     def grab_opening_hours(self, *args, **kwargs):
         if "places_poi_info" in kwargs.keys():
             try:
-                opening_hours_str = ",".join(
-                    kwargs["places_poi_info"]["regularOpeningHours"][
-                        "weekdayDescriptions"
-                    ]
-                )
+                opening_hours_str = kwargs["places_poi_info"]["regularOpeningHours"][
+                    "weekdayDescriptions"
+                ]
+
                 opening_hours_dict = parse_opening_hours(opening_hours_str)
                 opening_hours_grouped = group_opening_hours(opening_hours_dict)
 
                 return opening_hours_grouped
             except KeyError:
                 print("Unable to retrieve value for", self.store_page_title)
-
+            except ValueError:
+                print(opening_hours_str)
         return "NIL"
 
     def grab_description(self):
@@ -147,10 +147,10 @@ class StoreInfo:
     def grab_telephone(self, *args, **kwargs):
         telephone_nos = []
         # From website
-        tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
-        if tel_link:
-            dir_telephone_info = tel_link.get_text()
-            telephone_nos.append(f"{dir_telephone_info} (Directory)")
+        # tel_link = self.store_soup.find("a", href=lambda x: x and x.startswith("tel:"))
+        # if tel_link:
+        #     dir_telephone_info = tel_link.get_text()
+        #     telephone_nos.append(f"{dir_telephone_info} (Directory)")
 
         # From API
         if "places_poi_info" in kwargs.keys():
