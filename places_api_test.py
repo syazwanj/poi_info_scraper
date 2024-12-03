@@ -27,8 +27,11 @@ def make_request(mall: str, poi: str) -> dict:
 
     # Make the request
     print(f"Query: {query}. Making request to Google's Places API...")
-    resp = requests.post(request_url, json=data,
-                         headers=headers, timeout=timeout)
+    resp = requests.post(
+        request_url,
+        json=data,
+        headers=headers,
+    )
     resp.encoding = "utf-8"
 
     return resp.json()["places"][0]
@@ -44,8 +47,7 @@ params = {
 
 def main():
     print(f'API key: {headers["X-Goog-Api-Key"]}')
-    resp = requests.post(request_url, json=params,
-                         headers=headers, timeout=1.0)
+    resp = requests.post(request_url, json=params, headers=headers, timeout=1.0)
     resp.encoding = "utf-8"
     ans: dict = resp.json()
     for k, v in ans["places"][0].items():

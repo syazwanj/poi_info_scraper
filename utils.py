@@ -1,94 +1,68 @@
 from collections import defaultdict
-import json
+from itertools import groupby
+import pandas as pd
 
-# Mapping of day numbers to abbreviations
-day_abbreviations = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
-
-# Function to format time in 24-hour format
+# Day mapping (Monday to Sunday)
+days_map = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 
 
+# Format time
 def format_time(hour, minute):
     return f"{hour:02}:{minute:02}"
 
 
 # Parse JSON periods into a structured dictionary of opening hours
-
-
-# Parse JSON periods into a structured dictionary of opening hours
 def parse_opening_hours(json_data):
-    opening_hours = defaultdict(list)
-    for period in json_data["periods"]:
-        open_day = day_abbreviations[period["open"]["day"]]
-        close_day = day_abbreviations[period["close"]["day"]]
+    # Day mapping (Sunday = 0 shifted to Monday-first order)
+    days_map = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
-        # Convert opening and closing times to "HH:MM" format
-        open_time = format_time(period["open"]["hour"], period["open"]["minute"])
-        close_time = format_time(period["close"]["hour"], period["close"]["minute"])
+    # Create DataFrame
+    df = pd.DataFrame(
+        [
+            {
+                "day": days_map[period["open"]["day"]],
+                "hours": f"{period['open']['hour']:02}:{period['open']['minute']:02}-"
+                f"{period['close']['hour']:02}:{period['close']['minute']:02}",
+            }
+            for period in json_data["periods"]
+        ]
+    )
 
-        # Format as a single time range string
-        hours_range = f"{open_time}-{close_time}"
+    # Sort days in Monday-first order
+    df["day_index"] = df["day"].apply(lambda d: (days_map.index(d) + 1) % 7)
+    df = df.sort_values("day_index").drop(columns="day_index")
 
-        # Group by the time range
-        opening_hours[hours_range].append(open_day)
-    return opening_hours
+    # Group by hours and aggregate days
+    grouped = df.groupby("hours")["day"].apply(list).reset_index()
+
+    grouped["formatted_days"] = grouped["day"].apply(format_days)
+
+    # Ensure Sunday ('Su') is always the last group in output
+    grouped["sort_key"] = grouped["day"].apply(
+        lambda days: 7 if "Su" in days else min(days_map.index(d) for d in days)
+    )
+    grouped = grouped.sort_values("sort_key").drop(columns="sort_key")
+
+    # Generate final output string
+    output = ";".join(
+        f"{row['formatted_days']} {row['hours']}" for _, row in grouped.iterrows()
+    )
+    print(output)
+    return output
 
 
-# Function to group consecutive days
-
-
-def group_consecutive_days(days):
-    day_order = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
-
-    # Sort days in the regular order first
-    days.sort(key=lambda d: day_order.index(d))
-
-    # Ensure "Sa" and "Su" are always at the end if they are present
-    weekdays = [day for day in days if day not in ["Sa", "Su"]]
-    weekends = [day for day in days if day in ["Sa", "Su"]]
-
-    grouped_days = []
-    if weekdays:
-        start_day = weekdays[0]
-        end_day = weekdays[0]
-
-        for i in range(1, len(weekdays)):
-            current_day = weekdays[i]
-            previous_day = weekdays[i - 1]
-
-            # Check if current day is consecutive to the previous day
-            if day_order.index(current_day) == day_order.index(previous_day) + 1:
-                end_day = current_day
-            else:
-                # Append range or single day
-                if start_day == end_day:
-                    grouped_days.append(start_day)
-                else:
-                    grouped_days.append(f"{start_day}-{end_day}")
-                start_day = current_day
-                end_day = current_day
-
-        # Append the final range for weekdays
-        if start_day == end_day:
-            grouped_days.append(start_day)
+def format_days(days):
+    days = sorted(
+        days, key=lambda d: days_map.index(d)
+    )  # Ensure days are sorted correctly
+    ranges, temp = [], [days[0]]
+    for i in range(1, len(days)):
+        if (
+            days_map.index(days[i]) - days_map.index(temp[-1])
+        ) % 7 == 1:  # Check for consecutive days
+            temp.append(days[i])
         else:
-            grouped_days.append(f"{start_day}-{end_day}")
-
-    # Append weekends as a separate group
-    if weekends:
-        if len(weekends) == 2:
-            grouped_days.append("Sa-Su")
-        else:
-            grouped_days.append(weekends[0])
-
-    return ", ".join(grouped_days)
-
-
-# Function to format the grouped opening hours
-
-
-def format_grouped_opening_hours(opening_hours):
-    result = []
-    for hours, days in opening_hours.items():
-        grouped_days = group_consecutive_days(days)
-        result.append(f"{grouped_days} {hours}")
-    return "; ".join(result)
+            ranges.append(temp)
+            temp = [days[i]]
+    ranges.append(temp)
+    return ",".join(["-".join([r[0], r[-1]] if len(r) > 1 else r) for r in ranges])

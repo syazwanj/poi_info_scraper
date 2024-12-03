@@ -5,7 +5,7 @@ import csv
 from bs4 import BeautifulSoup
 from requests.exceptions import ConnectionError
 from places_api_test import make_request
-from utils import format_grouped_opening_hours, parse_opening_hours
+from utils import parse_opening_hours
 
 # base_url = "https://www.parkwayparade.com.sg/opening-hours/"
 
@@ -99,6 +99,9 @@ class StoreInfo:
             except ConnectionError:
                 print("Unable to visit" + store)
                 continue
+            except AttributeError:
+                self.store_page_title = store
+                continue
 
             # Make the request to the places API
             google_poi_info = self.make_places_api_request()
@@ -128,14 +131,13 @@ class StoreInfo:
         if "places_poi_info" in kwargs.keys():
             try:
                 opening_hours_json = kwargs["places_poi_info"]["regularOpeningHours"]
-                opening_hours_dict = parse_opening_hours(opening_hours_json)
-                opening_hours_grouped = format_grouped_opening_hours(opening_hours_dict)
+                opening_hours_grouped = parse_opening_hours(opening_hours_json)
 
                 return opening_hours_grouped
             except KeyError:
                 print("Unable to retrieve value for", self.store_page_title)
             except ValueError:
-                print(opening_hours_str)
+                print(opening_hours_json)
         return "NIL"
 
     def grab_description(self):
